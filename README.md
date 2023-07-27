@@ -6,3 +6,5 @@ From the Rebrickable website - "The LEGO Parts/Sets/Colors and Inventories of ev
 Rebrickable provides this database to be used for any purpose.
 
 LEGO Data Model
+![image](https://github.com/mynguyenah/Data-Analyst-Project-By-Python/assets/104494209/0f94dd8f-4a2a-458b-a8bc-54c8c914c00f)
+
