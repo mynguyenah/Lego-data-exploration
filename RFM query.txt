@@ -1,0 +1,66 @@
+
+-- Co 85 rows voi CustomerID = 0 va created_date khac nhau. Remove thoses rows
+SELECT *
+INTO #clean_tbl
+FROM longth.dbo.Customer_Transaction
+WHERE CustomerID <>0
+
+-- Find RFM Score
+
+SELECT 
+	mmm.*,
+	CONCAT(R_Score, F_Score, M_Score) AS RFM_Score
+INTO #RFMTable
+FROM
+	(
+	SELECT 
+		mm.*,
+		-- Cang gan thi diem recency cang cao
+		NTILE(4) OVER(PARTITION BY recency ORDER BY recency ASC) AS R_Score,
+		-- Cang purchase nhieu thi F_score cang cao
+		NTILE(4) OVER(PARTITION BY frequency ORDER BY frequency ASC) as F_Score,
+		-- Cang chi nhieu tien diem M_score cang cao
+		NTILE(4) OVER(PARTITION BY monetary ORDER BY monetary ASC) AS M_Score
+	FROM
+	(
+		-- Define recency, frequency, monetary
+		SELECT
+			DISTINCT m.CustomerID,
+			MAX(m.age_exp) AS age_exp,
+			MAX(m.Purchase_Date) AS recency,
+			COUNT(m.Purchase_Date) AS frequency,
+			SUM(m.GMV) AS monetary
+		FROM
+				(
+			-- summarize information
+				SELECT
+					c.ID,
+					c.CustomerID,
+					r.created_date,
+					c.Purchase_Date,
+					YEAR(c.Purchase_Date) - YEAR(r.created_date) + 1 AS age_exp,
+					GMV
+				FROM #clean_tbl c LEFT JOIN longth.dbo.Customer_Registered r ON c.ID = r.ID
+				GROUP BY c.ID,
+					c.CustomerID,
+					r.created_date,
+					c.Purchase_Date,
+					GMV
+					) m
+		GROUP BY m.CustomerID
+		) mm
+	) mmm
+--
+SELECT 
+	m.*,
+	ROUND((CAST(totalcustomer AS FLOAT)/CAST(overall AS FLOAT) * 100),2) AS accountfor
+INTO #RFM_account
+FROM 
+(
+SELECT 
+	RFM_Score,
+	COUNT(CustomerID) totalcustomer,
+	(SELECT COUNT(CustomerID) FROM #RFMTable) overall 
+FROM #RFMTable
+GROUP BY RFM_Score
+) m
